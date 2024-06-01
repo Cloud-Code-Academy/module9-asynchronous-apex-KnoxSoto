@@ -17,9 +17,11 @@
  * Note: The class below contains placeholders for implementing a future method to update accounts and opportunities.
  *       The accompanying test class 'AsynchronousTest' should also be updated to test this method.
  */
-public with sharing class NextStepFuture {
 
+public with sharing class NextStepFuture {
+    
     /* 
+
      * Question 1
      * Update/Uncomment the template code to create a method
      * Create a future method that updates all account and opportunities next step to 'Meeting in the future'
@@ -30,6 +32,40 @@ public with sharing class NextStepFuture {
     //[public | private ] [static] data_type method_name (input parameters) {
     //  The body of the method
     //}
+    @future
+    public static void UpdateAllNextStep(List<Id> recordId) {
+    
+        // Query the Account records where the recordId is in the parameter
+        List<Account> accList = [SELECT Id FROM Account WHERE Id IN :recordId];
+    
+        // Collect the Account Ids
+        Set<Id> accIdSet = new Set<Id>();
+        for(Account acc : accList) {
+            accIdSet.add(acc.Id);
+        }
+    
+        // Query Opportunities where AccountId matches the Account Ids
+        List<Opportunity> oppList = [SELECT AccountId, NextStep FROM Opportunity WHERE AccountId IN :accIdSet];
+    
+        // Create a map to store AccountId to NextStep mapping
+        Map<Id, String> accountToNextStepMap = new Map<Id, String>();
+        for(Opportunity opp : oppList) {
+            if (opp.NextStep != null) {
+                accountToNextStepMap.put(opp.AccountId, opp.NextStep);
+            }
+        }
+    
+         //Update the Account records with the NextStep from related Opportunities
+        for(Account acc : accList) {
+            if(accountToNextStepMap.containsKey(acc.Id)) {
+                acc.Next_Step__c = accountToNextStepMap.get(acc.Id);
+            }
+        }
+    
+        // Perform DML update on the Account records
+       update accList;
+   }
+
 
     /*
     * Question 2
@@ -38,6 +74,7 @@ public with sharing class NextStepFuture {
     * Update the corresponding test class AsynchronousTest and test method nextStepFuture_testCreateDealAndUpdateRole to cover test this method
     */
     //Mix DML Error happens when you try to perform DML operations on setup and non-setup objects in a single transaction.
+    @future
     public static void createDealAndUpdateRole() {
         Opportunity bigDeal = new Opportunity();
         insertBigDeal(bigDeal);
